@@ -16,7 +16,7 @@ def get_search_and_ignore(path, keep_all=False):
             search_result.remove(to_drop)
     return search_result
 
-def get_branches(search_result, include_all=False):    
+def get_branches(search_result, include_all=False, codename_override=None):    
     branch_collection = {}
     current_branches = {}
     for repo in search_result:
@@ -29,12 +29,16 @@ def get_branches(search_result, include_all=False):
         if include_this_repo == True:
             branch_list = subprocess.check_output(['git', '-C', repo_dir, 'branch', '-r']).decode('utf-8').split()
             branch_list.remove("->")
-            release_list = []
+            release_list = []            
             for branch in branch_list:
                 split_branch = branch.split("/")
                 branch_element = split_branch[1]
-                if branch_element in cn.names:
-                    release_list.append(branch_element)
+                if codename_override is None:
+                    if branch_element in cn.names:
+                        release_list.append(branch_element)
+                else:
+                    if branch_element == codename_override.lower():
+                        release_list.append(branch_element)
             branch_collection[repo_dir] = release_list
             branch_list = subprocess.check_output(['git', '-C', repo_dir, 'branch']).decode('utf-8').split()
             current_branch = branch_list[branch_list.index('*')+1]
@@ -43,6 +47,7 @@ def get_branches(search_result, include_all=False):
 
 def find_newest_common(distros, branch_collection):
     remaining = distros
+    got_result = False
     for key in branch_collection:
         remaining = list(set(remaining) & set(branch_collection[key]))
     best_index = 0
@@ -50,7 +55,11 @@ def find_newest_common(distros, branch_collection):
         if distro in distros[best_index:]:
             result_index = distros.index(distro, best_index)
             best_index = result_index
-    return distros[best_index]
+            got_result = True
+    if got_result:
+        return distros[best_index]
+    else:
+        return None
 
 def default_yes(input_answer):
     return (input_answer == "" or input_answer == "y" or input_answer == "Y")
@@ -90,15 +99,27 @@ def main():
         print(f"No git folders found in '{args.path}'.")
         exit(1)
     
-    branch_collection, current_branches = get_branches(search_result, (args.all or args.yes))
+    branch_collection, current_branches = get_branches(search_result, (args.all or args.yes), args.codename)
+    print(branch_collection)
+    print(current_branches)
 
     print("================================================================================")
     if args.codename is None:
         newest_codename = find_newest_common(cn.names, branch_collection)
+        if newest_codename is None:
+            print("No common code name found.  Check the paths included.")
+            exit(1)
         newest_version = cn.versions[newest_codename]
         print(f"Newest common version found '{newest_codename}'({newest_version})\n")
     else:
         newest_codename = args.codename.lower()
+        incompatable_repos = []
+        for key in branch_collection:
+            if len(branch_collection[key]) == 0:
+                incompatable_repos.append(key)
+        if len(incompatable_repos) > 0:        
+            print(f"Codename '{newest_codename}' not found for repositories in {incompatable_repos}.")
+            exit(1)
         newest_version = cn.versions[newest_codename]
         print(f"Specified codename '{newest_codename}'({newest_version})\n")
 
