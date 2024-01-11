@@ -4,24 +4,32 @@ import yocto_codename_list as cn
 import subprocess
 import argparse
 import os
+import inspect
 
-def get_search_and_ignore(path, keep_all=False):
+def get_search_and_ignore(path, script_path, keep_all=False):
+    print(keep_all)
     search_result = subprocess.check_output(['find', path, '-name', '.git', '-type', 'd', '-prune']).decode('utf-8').split()
+    dir_result = []
     drop_dirs = []
-    if keep_all != True:
-        for search_dir in search_result:
-            if "build" in search_dir:
-                drop_dirs.append(search_dir)
-        for to_drop in drop_dirs:
-            search_result.remove(to_drop)
-    return search_result
+    
+    for search_dir in search_result:
+        repo_dir = search_dir.rstrip('.git')  
+        dir_result.append(repo_dir)
+        if "build" in search_dir and keep_all != True:
+            drop_dirs.append(repo_dir)
+        if os.path.abspath(repo_dir) == os.path.abspath(script_path):
+            drop_dirs.append(repo_dir)
+    
+    for to_drop in drop_dirs:
+        dir_result.remove(to_drop)
+    print(dir_result)
+    return dir_result
 
 def get_branches(search_result, include_all=False, codename_override=None):    
     branch_collection = {}
     current_branches = {}
-    for repo in search_result:
-        include_this_repo = include_all
-        repo_dir = repo.rstrip('.git')           
+    for repo_dir in search_result:
+        include_this_repo = include_all                 
         repo_url = subprocess.check_output(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url']).decode('utf-8').split()[0]
         if include_this_repo != True:
             include_url = input(f"Include {repo_dir} ({repo_url})? [Y]/N: ")
@@ -83,6 +91,7 @@ def main():
     parser.add_argument('--include_build_dirs', action='store_true', help="Do not filter out folders with git repos from within a build path.")
     parser.add_argument('path', help="The path to look for yocto content to update.")
     args = parser.parse_args()
+    script_directory = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     
     if not os.path.isdir(args.path):
         print(f"The specified path '{args.path}' is not valid.")
@@ -94,7 +103,7 @@ def main():
             print("If you believe this to be incorrect, update the yocto_codename_list.py file.")
             exit(1)
     
-    search_result = get_search_and_ignore(args.path, args.include_build_dirs)
+    search_result = get_search_and_ignore(args.path, script_directory, args.include_build_dirs)
     if len(search_result) == 0:
         print(f"No git folders found in '{args.path}'.")
         exit(1)
