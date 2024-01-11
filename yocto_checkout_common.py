@@ -16,12 +16,12 @@ def get_search_and_ignore(path, keep_all=False):
             search_result.remove(to_drop)
     return search_result
 
-def get_branches(path, search_result, include_all=False):
+def get_branches(search_result, include_all=False):    
     branch_collection = {}
     current_branches = {}
     for repo in search_result:
         include_this_repo = include_all
-        repo_dir = path + repo.strip('.git')
+        repo_dir = repo.rstrip('.git')           
         repo_url = subprocess.check_output(['git', '-C', repo_dir, 'config', '--get', 'remote.origin.url']).decode('utf-8').split()[0]
         if include_this_repo != True:
             include_url = input(f"Include {repo_dir} ({repo_url})? [Y]/N: ")
@@ -90,7 +90,7 @@ def main():
         print(f"No git folders found in '{args.path}'.")
         exit(1)
     
-    branch_collection, current_branches = get_branches(args.path, search_result, (args.all or args.yes))
+    branch_collection, current_branches = get_branches(search_result, (args.all or args.yes))
 
     print("================================================================================")
     if args.codename is None:
