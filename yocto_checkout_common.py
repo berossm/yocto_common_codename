@@ -7,7 +7,6 @@ import os
 import inspect
 
 def get_search_and_ignore(path, script_path, keep_all=False):
-    print(keep_all)
     search_result = subprocess.check_output(['find', path, '-name', '.git', '-type', 'd', '-prune']).decode('utf-8').split()
     dir_result = []
     drop_dirs = []
@@ -22,7 +21,7 @@ def get_search_and_ignore(path, script_path, keep_all=False):
     
     for to_drop in drop_dirs:
         dir_result.remove(to_drop)
-    print(dir_result)
+        
     return dir_result
 
 def get_branches(search_result, include_all=False, codename_override=None):    
@@ -109,8 +108,6 @@ def main():
         exit(1)
     
     branch_collection, current_branches = get_branches(search_result, (args.all or args.yes), args.codename)
-    print(branch_collection)
-    print(current_branches)
 
     print("================================================================================")
     if args.codename is None:
