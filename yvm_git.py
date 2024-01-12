@@ -2,7 +2,6 @@ import yocto_codename_list as cn
 import subprocess
 import os
 
-
 def default_yes(input_answer):
     return (input_answer == "" or input_answer == "y" or input_answer == "Y")
 
@@ -77,3 +76,8 @@ def at_target_branch(codename, current_branches):
         else:
             to_update.append(key)
     return current, to_update
+
+if __name__ == '__main__':
+    short_name = os.path.basename(__file__)
+    print(f"This python file ({short_name}) is not intended to be executed directly.")
+    exit(1)

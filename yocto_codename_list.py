@@ -1,3 +1,5 @@
+import os
+
 names = ["inky", "clyde", "blinky", "pinky", "purple", "green", "laverne",
          "bernard", "edison", "denzil", "danny", "dylan", "dora", "daisy", "dizzy", "fido",
          "jethro", "krogoth", "morty", "pyro", "rocko", "sumo", "thud", "warrior",
@@ -11,3 +13,8 @@ versions = {"inky": "0.3", "clyde": "0.4", "blinky": "0.5", "pinky": "0.6", "pur
             "zeus": "3.0", "dunfell": "3.1", "gatesgarth": "3.2", "hardknott": "3.3", "honister": "3.4",
             "kirkstone": "4.0", "langdale": "4.1", "mickledore": "4.2", "nanbield": "4.3",
             "scarthgap": "5.0"}
+
+if __name__ == '__main__':
+    short_name = os.path.basename(__file__)
+    print(f"This python file ({short_name}) is not intended to be executed directly.")
+    exit(1)
