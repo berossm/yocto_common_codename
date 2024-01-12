@@ -11,7 +11,9 @@ import inspect
 def main():
     parser = argparse.ArgumentParser(description="Search for yocto related content and migrate them to the newest common codename.")
     parser.add_argument('-y', '--yes', action='store_true', help="Do not prompt using yes for all answers.")
-    parser.add_argument('-c', '--codename', help="Changes from searching for newest possible common codename to specified codename.")
+    action = parser.add_mutually_exclusive_group(required=False)
+    action.add_argument('-c', '--codename', help="Changes from searching for newest possible common codename to specified codename.")
+    action.add_argument('-m', '--allow_minor', action='store_true', help="Allow different codenames as long as they are the same major version.")
     parser.add_argument('-a', '--all', action='store_true', help="Do not prompts for inclusion of detected folders and include all of them.")
     parser.add_argument('-s', '--simulate', action='store_true', help="Run all checks but do not update branch.")
     parser.add_argument('--include_build_dirs', action='store_true', help="Do not filter out folders with git repos from within a build path.")
@@ -37,14 +39,7 @@ def main():
     branch_collection, current_branches = yvm.get_branches(search_result, (args.all or args.yes), args.codename)
 
     print("================================================================================")
-    if args.codename is None:
-        newest_codename = yvm.find_newest_common(branch_collection)
-        if newest_codename is None:
-            print("No common code name found.  Check the paths included.")
-            exit(1)
-        newest_version = cn.versions[newest_codename]
-        print(f"Newest common version found '{newest_codename}'({newest_version})\n")
-    else:
+    if args.codename is not None:
         newest_codename = args.codename.lower()
         incompatable_repos = []
         for key in branch_collection:
@@ -55,28 +50,42 @@ def main():
             exit(1)
         newest_version = cn.versions[newest_codename]
         print(f"Specified codename '{newest_codename}'({newest_version})\n")
+    elif args.allow_minor is not None:
+        target_versions = yvm.find_newest_within_major(branch_collection)
+    else:
+        newest_codename = yvm.find_newest_common(branch_collection)
+        if newest_codename is None:
+            print("No common code name found.  Check the paths included.")
+            exit(1)
+        newest_version = cn.versions[newest_codename]
+        print(f"Newest common version found '{newest_codename}'({newest_version})\n")
 
-    branches_current, branches_need_update = yvm.at_target_branch(newest_codename, current_branches)
-
-    branch_cur_str = ", ".join(branches_current)
-    branch_update_str = ", ".join(branches_need_update)
-    if len(branches_current) > 0:
-        print(f"Branches in ({branch_cur_str}) are already at {newest_codename}.")
-    if len(branches_need_update) > 0:
-        if args.simulate == True:
-            print(f"Branches in ({branch_update_str}) would need to be updated to {newest_codename}({newest_version})")
-        else:
+    if args.allow_minor is not None:
+        branches_current = {}
+        branches_need_update = {}
+        for key in target_versions:
+            if target_versions[key] == current_branches[key]:
+                branches_current[key] = target_versions[key]
+            else:
+                branches_need_update[key] = target_versions[key]
+                
+        yvm.display_branch(branches_current, branches_need_update, current_branches)
+            
+    else:
+        branches_current, branches_need_update = yvm.at_target_branch(newest_codename, current_branches)
+        yvm.display_branch(branches_current, branches_need_update, current_branches)
+        
+        if args.simulate != True and len(branches_need_update) > 0:
             do_update = args.yes
             if do_update != True:
                 print("--------------------------------------------------------------------------------")
-                do_update = input(f"Update the branches for ({branch_update_str}) to {newest_codename}({newest_version})? [Y]/N: ")
+                do_update = input("Update the branches? [Y]/N: ")
                 do_update = yvm.default_yes(do_update)
             
             if do_update == True:
-                print(f"Updating to '{newest_codename}' branch...")
                 for update_dir in branches_need_update:
-                    print(f"{update_dir} {newest_codename}")                
-                    subprocess.run(['git', '-C', update_dir, 'checkout', newest_codename])
+                    print(f"Updating {update_dir} to {branches_need_update[update_dir]}")                
+                    subprocess.run(['git', '-C', update_dir, 'checkout', branches_need_update[update_dir]])
                     subprocess.run(['git', '-C', update_dir, 'pull'])
             else:
                 print("Aborting branch change...")

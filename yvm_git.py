@@ -1,6 +1,8 @@
 import yocto_codename_list as cn
 import subprocess
 import os
+import math
+
 
 def default_yes(input_answer):
     return (input_answer == "" or input_answer == "y" or input_answer == "Y")
@@ -66,16 +68,60 @@ def find_newest_common(branch_collection):
         return cn.names[best_index]
     else:
         return None
+
+def find_newest_within_major(branch_collection):
+    version_collection = {}
+    max_major = {}
+    best_max = cn.last_major
+    target_branches ={}
+    for key in branch_collection:
+        max_vers = [0] * (cn.last_major + 1)
+        max_branch = [""] * (cn.last_major + 1)
+        for branch in branch_collection[key]:
+            branch_ver = cn.versions[branch]
+            branch_index = math.floor(branch_ver)
+            if branch_ver > max_vers[branch_index]:
+                max_vers[branch_index] = branch_ver
+                max_branch[branch_index] = branch
+        version_collection[key] = max_branch
+        for major in range(cn.last_major, -1, -1):
+            if max_branch[major] != '':
+                max_major[key] = major
+                if major < best_max:
+                    best_max = major
+                break
+    for key in branch_collection:
+        target_branches[key] = version_collection[key][best_max]
+        
+    return target_branches
     
 def at_target_branch(codename, current_branches):
-    current = []
-    to_update = []
+    current = {}
+    to_update = {}
     for key in current_branches:
         if current_branches[key] == codename:
-            current.append(key)
+            current[key] = codename
         else:
-            to_update.append(key)
+            to_update[key] = codename
     return current, to_update
+
+def display_branch(branches_current, branches_need_update, current_branches):
+    if len(branches_current) > 0:
+        print(f"Current Branches:")
+        for key in branches_current:
+            branch_name = branches_current[key]
+            branch_version = cn.versions[branches_current[key]]
+            print(f"    {key} on branch '{branch_name}'({branch_version})")
+    print("--------------------------------------------------------------------------------")
+    if len(branches_need_update) > 0:
+        print(f"Branches to Change:")
+        for key in branches_need_update:
+            current_branch = current_branches[key]
+            current_version = cn.versions[current_branch]
+            target_branch = branches_need_update[key]
+            target_version = cn.versions[target_branch]
+            print(f"    {key} on branch '{current_branch}'({current_version}) update to '{target_branch}'({target_version})")
+    
 
 if __name__ == '__main__':
     short_name = os.path.basename(__file__)
