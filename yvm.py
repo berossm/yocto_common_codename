@@ -50,7 +50,7 @@ def main():
             exit(1)
         newest_version = cn.versions[newest_codename]
         print(f"Specified codename '{newest_codename}'({newest_version})\n")
-    elif args.allow_minor is not None:
+    elif args.allow_minor == True:
         target_versions = yvm.find_newest_within_major(branch_collection)
     else:
         newest_codename = yvm.find_newest_common(branch_collection)
@@ -60,7 +60,7 @@ def main():
         newest_version = cn.versions[newest_codename]
         print(f"Newest common version found '{newest_codename}'({newest_version})\n")
 
-    if args.allow_minor is not None:
+    if args.allow_minor == True:
         branches_current = {}
         branches_need_update = {}
         for key in target_versions:
