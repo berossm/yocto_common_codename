@@ -14,7 +14,7 @@ def get_search_and_ignore(path, script_path, keep_all=False):
     for search_dir in search_result:
         repo_dir = search_dir.rstrip('.git')
         dir_result.append(repo_dir)
-        if "build" in search_dir and keep_all is True:
+        if "build" in search_dir and keep_all is not True:
             drop_dirs.append(repo_dir)
         if os.path.abspath(repo_dir) == os.path.abspath(script_path):
             drop_dirs.append(repo_dir)
