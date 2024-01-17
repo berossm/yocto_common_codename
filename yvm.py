@@ -6,7 +6,7 @@ import subprocess
 import argparse
 import inspect
 import yocto_codename_list as cn
-import yvm_git as yvm
+import methods_for_yvm as yvm
 
 SEP1 = "================================================================================"
 SEP2 = "--------------------------------------------------------------------------------"
